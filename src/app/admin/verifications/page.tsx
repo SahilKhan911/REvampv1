@@ -30,11 +30,7 @@ export default function VerificationsPage() {
                 const querySnapshot = await getDocs(q);
                 const users: UserWithId[] = [];
                 querySnapshot.forEach((doc) => {
-                    // Make sure uid exists before pushing
-                    const data = doc.data() as User;
-                    if (data.uid) {
-                        users.push({ id: doc.id, ...data });
-                    }
+                    users.push({ id: doc.id, ...(doc.data() as User) });
                 });
                 setPendingUsers(users);
             } catch (err: any) {
@@ -48,12 +44,12 @@ export default function VerificationsPage() {
         fetchPendingUsers();
     }, []);
 
-    const handleVerification = async (userId: string, status: 'verified' | 'rejected') => {
+    const handleVerification = async (docId: string, status: 'verified' | 'rejected') => {
         try {
-            const userRef = doc(db, 'users', userId);
+            const userRef = doc(db, 'users', docId);
             await updateDoc(userRef, { verificationStatus: status });
 
-            setPendingUsers(prevUsers => prevUsers.filter(user => user.uid !== userId));
+            setPendingUsers(prevUsers => prevUsers.filter(user => user.id !== docId));
             toast({
                 title: `User ${status}`,
                 description: `The user has been successfully ${status}.`,
@@ -122,7 +118,7 @@ export default function VerificationsPage() {
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {pendingUsers.map(user => (
-                        <Card key={user.uid} className="flex flex-col">
+                        <Card key={user.id} className="flex flex-col">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><UserIcon className='h-5 w-5' />{user.name}</CardTitle>
                                 <CardDescription>{user.email}</CardDescription>
@@ -143,10 +139,10 @@ export default function VerificationsPage() {
                                 <p><span className='font-semibold'>Year:</span> {user.year}</p>
                             </CardContent>
                             <CardFooter className="gap-4">
-                                <Button className="w-full" onClick={() => handleVerification(user.uid, 'verified')}>
+                                <Button className="w-full" onClick={() => handleVerification(user.id, 'verified')}>
                                     <CheckCircle className="mr-2 h-4 w-4" /> Approve
                                 </Button>
-                                <Button variant="destructive" className="w-full" onClick={() => handleVerification(user.uid, 'rejected')}>
+                                <Button variant="destructive" className="w-full" onClick={() => handleVerification(user.id, 'rejected')}>
                                     <XCircle className="mr-2 h-4 w-4" /> Reject
                                 </Button>
                             </CardFooter>

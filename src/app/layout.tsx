@@ -5,8 +5,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { Header } from '@/components/header';
 
 export const metadata: Metadata = {
-  title: 'REvamp Authenticator',
-  description: 'Authentication foundation for REvamp using Firebase',
+  title: 'REvamp: The Ultimate Student Community',
+  description: 'A platform for college students to learn, grow, connect, and earn rewards.',
 };
 
 export default function RootLayout({
@@ -21,7 +21,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased min-h-screen bg-background" suppressHydrationWarning>
+      <body className="font-body antialiased min-h-screen bg-background">
         <AuthProvider>
           <Header />
           <main>{children}</main>
