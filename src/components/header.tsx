@@ -12,12 +12,6 @@ export function Header() {
   const { user } = useAuth();
   const pathname = usePathname();
 
-  const navLinks = [
-    { href: '/dashboard', label: 'Dashboard', loggedIn: true },
-    { href: '/admin/verifications', label: 'Verifications', admin: true },
-    { href: '/admin/events/create', label: 'Create Event', admin: true },
-  ];
-
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 max-w-screen-2xl items-center">
@@ -52,7 +46,7 @@ export function Header() {
                     : 'text-foreground/60'
                 )}
               >
-                Admin Panel
+                Admin
               </Link>
             )}
           </nav>

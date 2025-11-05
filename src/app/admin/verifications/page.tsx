@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect }from 'react';
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import type { User } from '@/types';
@@ -30,7 +30,11 @@ export default function VerificationsPage() {
                 const querySnapshot = await getDocs(q);
                 const users: UserWithId[] = [];
                 querySnapshot.forEach((doc) => {
-                    users.push({ id: doc.id, ...doc.data() as User });
+                    // Make sure uid exists before pushing
+                    const data = doc.data() as User;
+                    if (data.uid) {
+                        users.push({ id: doc.id, ...data });
+                    }
                 });
                 setPendingUsers(users);
             } catch (err: any) {
@@ -67,8 +71,8 @@ export default function VerificationsPage() {
 
     if (isLoading) {
         return (
-            <div className="container py-8">
-                 <h1 className="text-3xl font-bold font-headline mb-2">Pending Verifications</h1>
+            <div>
+                <h1 className="text-3xl font-bold font-headline mb-2">Pending Verifications</h1>
                 <p className="text-muted-foreground mb-8">Review and process new user registrations.</p>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {[...Array(3)].map((_, i) => (
@@ -92,7 +96,7 @@ export default function VerificationsPage() {
 
     if (error) {
          return (
-            <div className="container py-8">
+            <div>
                 <Alert variant="destructive">
                     <XCircle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
@@ -103,7 +107,7 @@ export default function VerificationsPage() {
     }
 
     return (
-        <div className="container py-8">
+        <div>
             <h1 className="text-3xl font-bold font-headline mb-2">Pending Verifications</h1>
             <p className="text-muted-foreground mb-8">
                 Review and process new user registrations. Found {pendingUsers.length} request(s).

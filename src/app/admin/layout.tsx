@@ -39,5 +39,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  return <>{children}</>;
+  // A simple layout for the admin section, can be expanded with a sidebar nav later
+  return <div className="container py-8">{children}</div>;
 }
