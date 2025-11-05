@@ -18,6 +18,8 @@ export type User = {
   badges: string[];
   streak: number;
   lastActiveDate?: Timestamp;
+  role: 'student' | 'ambassador' | 'admin';
+  photoURL?: string;
 };
 
 export interface AuthUser extends FirebaseUser {
@@ -50,6 +52,7 @@ export type LumaEvent = {
 };
 
 export type Registration = {
+  id: string;
   userId: string;
   eventId: string;
   paymentId?: string;
@@ -81,3 +84,28 @@ export type Payment = {
     status: 'pending' | 'success' | 'failed';
     createdAt: Timestamp;
 }
+
+export type AmbassadorApplication = {
+    id?: string;
+    userId: string;
+    answers: {
+        why: string;
+        what: string;
+        experience: string;
+    };
+    videoUrl: string;
+    status: 'pending' | 'approved' | 'rejected';
+    appliedAt: Timestamp;
+};
+
+export type Ambassador = {
+    id?: string;
+    userId: string;
+    college: string;
+    tier: 'Campus' | 'Senior' | 'Lead';
+    semester: string;
+    stipend: number;
+    studentsRecruited: number;
+    eventsHosted: number;
+    startDate: Timestamp;
+};

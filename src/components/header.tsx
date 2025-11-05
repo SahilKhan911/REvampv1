@@ -7,6 +7,13 @@ import { UserNav } from '@/components/user-nav';
 import { LogoIcon } from '@/components/icons';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 export function Header() {
   const { user } = useAuth();
@@ -37,17 +44,31 @@ export function Header() {
               </Link>
             )}
              {user?.isAdmin && (
-              <Link
-                href="/admin/verifications"
-                className={cn(
-                  'transition-colors hover:text-foreground/80',
-                  pathname.startsWith('/admin')
-                    ? 'text-foreground font-semibold'
-                    : 'text-foreground/60'
-                )}
-              >
-                Admin
-              </Link>
+               <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      'gap-1 px-2 text-foreground/60 hover:text-foreground/80',
+                      pathname.startsWith('/admin') && 'text-foreground font-semibold'
+                    )}
+                  >
+                    Admin
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => window.location.href='/admin/verifications'}>
+                    Verifications
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.location.href='/admin/events/create'}>
+                    Create Event
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.location.href='/admin/ambassadors'}>
+                    Ambassadors
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </nav>
         </div>

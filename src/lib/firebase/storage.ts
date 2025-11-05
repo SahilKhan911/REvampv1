@@ -21,3 +21,13 @@ export async function uploadEventBanner(eventId: string, file: File): Promise<st
     
     return downloadURL;
 }
+
+export async function uploadAmbassadorVideo(userId: string, file: File): Promise<string> {
+    const filePath = `ambassador-applications/${userId}/${file.name}`;
+    const storageRef = ref(storage, filePath);
+
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    return downloadURL;
+}
