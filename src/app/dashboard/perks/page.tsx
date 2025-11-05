@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lock, Unlock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Placeholder data - this would come from Firestore
 const perks = [
