@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lock, Unlock } from "lucide-react";
@@ -12,6 +12,8 @@ const perks = [
     { id: 2, title: "Exclusive REvamp T-Shirt", description: "Show off your community pride with a branded T-shirt.", tier: "Gold" },
     { id: 3, title: "1-on-1 Mentorship Session", description: "Get career advice from an industry expert.", tier: "Gold" },
     { id: 4, title: "Guaranteed Internship Interview", description: "An interview with one of our partner companies.", tier: "Platinum" },
+    { id: 5, title: "LinkedIn Profile Review", description: "Get your LinkedIn profile reviewed by a professional.", tier: "Silver" },
+    { id: 6, title: "Free Entry to Premium Workshop", description: "Access one of our premium workshops for free.", tier: "Bronze" },
 ];
 
 // Placeholder - this would come from the authenticated user's profile
@@ -34,7 +36,7 @@ export default function PerksPage() {
                     const isUnlocked = userTierIndex >= perkTierIndex;
 
                     return (
-                        <Card key={perk.id} className={cn("flex flex-col", !isUnlocked && "bg-muted/50")}>
+                        <Card key={perk.id} className={cn("flex flex-col", !isUnlocked && "opacity-60")}>
                             <CardHeader>
                                 <CardTitle className="flex items-center justify-between">
                                     <span>{perk.title}</span>
@@ -45,11 +47,11 @@ export default function PerksPage() {
                                 </CardTitle>
                                 <CardDescription>{perk.description}</CardDescription>
                             </CardHeader>
-                            <CardContent className="flex-grow flex items-end">
+                            <CardFooter className="mt-auto">
                                 <Button className="w-full" disabled={!isUnlocked}>
                                     {isUnlocked ? "Claim Now" : "Locked"}
                                 </Button>
-                            </CardContent>
+                            </CardFooter>
                         </Card>
                     );
                 })}
