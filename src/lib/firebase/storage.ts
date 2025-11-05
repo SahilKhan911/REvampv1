@@ -11,3 +11,13 @@ export async function uploadCollegeId(userId: string, file: File): Promise<strin
     
     return downloadURL;
 }
+
+export async function uploadEventBanner(eventId: string, file: File): Promise<string> {
+    const filePath = `event-banners/${eventId}/${file.name}`;
+    const storageRef = ref(storage, filePath);
+
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    return downloadURL;
+}

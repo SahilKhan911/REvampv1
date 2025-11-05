@@ -1,6 +1,6 @@
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from './config';
-import type { User } from '@/types';
+import type { User, Event } from '@/types';
 
 type UserCreationData = Omit<User, 'uid' | 'createdAt' | 'verificationStatus' | 'tier' | 'streak' | 'lastActiveDate' | 'collegeIdUrl' | 'studentIdNumber'>;
 
@@ -23,4 +23,15 @@ export async function updateUserDocument(userId: string, data: Partial<User>) {
     await updateDoc(userRef, {
         ...data,
     });
+}
+
+export async function createEvent(eventData: Omit<Event, 'id' | 'createdAt' | 'createdBy'>, createdBy: string) {
+    const eventsCollection = collection(db, 'events');
+    const newEventData = {
+        ...eventData,
+        createdBy,
+        createdAt: serverTimestamp(),
+    };
+    const eventRef = await addDoc(eventsCollection, newEventData);
+    return eventRef.id;
 }

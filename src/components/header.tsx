@@ -14,7 +14,9 @@ export function Header() {
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard', loggedIn: true },
-    { href: '/admin/verifications', label: 'Admin', admin: true },
+    { href: '/dashboard/events', label: 'Events', loggedIn: true },
+    { href: '/admin/verifications', label: 'Verifications', admin: true },
+    { href: '/admin/events/create', label: 'Create Event', admin: true },
   ];
 
   return (
@@ -29,7 +31,8 @@ export function Header() {
           </Link>
           <nav className="flex items-center gap-6 text-sm">
             {navLinks.map((link) => {
-              const showLink = (link.loggedIn && user) || (link.admin && user?.isAdmin);
+              const showLink =
+                (link.loggedIn && user && !link.admin) || (link.admin && user?.isAdmin);
               if (!showLink) return null;
 
               return (
@@ -38,7 +41,7 @@ export function Header() {
                   href={link.href}
                   className={cn(
                     'transition-colors hover:text-foreground/80',
-                    pathname.startsWith(link.href)
+                    pathname === link.href || (pathname.startsWith(link.href) && link.href !== '/dashboard')
                       ? 'text-foreground font-semibold'
                       : 'text-foreground/60'
                   )}
