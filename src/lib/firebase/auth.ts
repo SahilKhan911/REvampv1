@@ -10,17 +10,15 @@ import {
 } from 'firebase/auth';
 import { auth } from './config';
 import { createUserDocument } from './firestore';
+import type { User } from '@/types';
+
+
+type SignUpData = Pick<User, 'name' | 'email' | 'college' | 'year' | 'domains' | 'primaryDomain'>;
 
 // Sign up with email and password
 export async function signUpWithEmail(
   password: string,
-  userData: {
-    name: string;
-    email: string;
-    college: string;
-    year: number;
-    collegeEmail: string;
-  }
+  userData: SignUpData
 ): Promise<UserCredential> {
   const userCredential = await createUserWithEmailAndPassword(
     auth,
@@ -28,7 +26,12 @@ export async function signUpWithEmail(
     password
   );
   const { uid } = userCredential.user;
-  await createUserDocument(uid, userData);
+  // Award points and badges on signup
+  await createUserDocument(uid, {
+    ...userData,
+    points: 50, // 50 points on signup
+    badges: ['first-steps'], // Award "First Steps" badge
+  });
   return userCredential;
 }
 

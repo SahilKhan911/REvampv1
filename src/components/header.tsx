@@ -14,7 +14,7 @@ export function Header() {
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard', loggedIn: true },
-    { href: '/admin/access-control', label: 'Admin Tool', admin: true },
+    { href: '/admin/verifications', label: 'Admin', admin: true },
   ];
 
   return (
@@ -38,8 +38,8 @@ export function Header() {
                   href={link.href}
                   className={cn(
                     'transition-colors hover:text-foreground/80',
-                    pathname === link.href
-                      ? 'text-foreground'
+                    pathname.startsWith(link.href)
+                      ? 'text-foreground font-semibold'
                       : 'text-foreground/60'
                   )}
                 >

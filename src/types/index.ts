@@ -7,9 +7,17 @@ export type User = {
   name: string;
   college: string;
   year: number;
-  collegeEmail: string;
   verificationStatus: 'pending' | 'verified' | 'rejected';
   createdAt: Timestamp;
+  collegeIdUrl?: string;
+  studentIdNumber?: string;
+  primaryDomain: string;
+  domains: string[];
+  points: number;
+  tier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+  badges: string[];
+  streak: number;
+  lastActiveDate?: Timestamp;
 };
 
 export interface AuthUser extends FirebaseUser {

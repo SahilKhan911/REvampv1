@@ -17,7 +17,7 @@ export default function Home() {
         </span>
         <div className="flex w-full items-center justify-center space-x-4 py-4 md:pb-10">
           <Button asChild className="font-bold">
-            <Link href="/register">Get Started</Link>
+            <Link href="/onboarding">Get Started</Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/login">Login</Link>
