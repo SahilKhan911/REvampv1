@@ -38,10 +38,11 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { signUpWithEmail } from '@/lib/firebase/auth';
+import { signUpWithEmail, signInWithGoogle } from '@/lib/firebase/auth';
 import { uploadCollegeId } from '@/lib/firebase/storage';
 import { Loader2, PartyPopper, UploadCloud } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { GoogleIcon } from '@/components/icons';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
@@ -77,6 +78,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [showConfetti, setShowConfetti] = useState(false);
   const { width, height } = useWindowSize();
@@ -135,6 +137,31 @@ export default function OnboardingPage() {
     }
   }
 
+  async function handleGoogleSignIn() {
+    setIsGoogleLoading(true);
+    try {
+      // With Google Sign-In, we can't enforce the multi-step form.
+      // We can either redirect them to a simpler onboarding after login,
+      // or just let them into the dashboard. For now, let's just log them in.
+      await signInWithGoogle();
+      router.push('/dashboard');
+      toast({
+          title: 'Welcome!',
+          description: 'You can complete your profile details in the dashboard.',
+      });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: 'Google Sign-In Failed',
+        description: error.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }
+
+
   type FieldName = keyof z.infer<typeof formSchema>;
 
   const steps = [
@@ -147,6 +174,11 @@ export default function OnboardingPage() {
   ];
 
   const handleNext = async () => {
+    if (step === TOTAL_STEPS) {
+      await form.handleSubmit(onSubmit)();
+      return;
+    }
+    
     const fields = steps[step - 1].fields;
     if (fields.length > 0) {
         const output = await form.trigger(fields as FieldName[], { shouldFocus: true });
@@ -155,8 +187,6 @@ export default function OnboardingPage() {
 
     if (step < TOTAL_STEPS) {
       setStep(step + 1);
-    } else {
-      await form.handleSubmit(onSubmit)();
     }
   };
 
@@ -193,7 +223,7 @@ export default function OnboardingPage() {
           {steps[step - 1].title}
         </CardTitle>
         <CardDescription>
-          Join the REvamp community. Step {step} of {TOTAL_STEPS}
+           {step < TOTAL_STEPS ? `Join the REvamp community. Step ${step} of ${TOTAL_STEPS - 1}` : 'Almost there!'}
         </CardDescription>
         <Progress value={(step / TOTAL_STEPS) * 100} className="w-full mt-2" />
       </CardHeader>
@@ -332,10 +362,19 @@ export default function OnboardingPage() {
                     )}
                  />
             )}
+             {step === TOTAL_STEPS && (
+                <div className='text-center space-y-4 flex flex-col items-center justify-center h-full'>
+                    <PartyPopper className="h-16 w-16 text-green-500" />
+                    <h3 className="text-xl font-bold">You're ready to go!</h3>
+                    <p className='text-muted-foreground'>
+                        Click the final button to complete your registration and start your journey with REvamp.
+                    </p>
+                </div>
+            )}
           </form>
         </Form>
       </CardContent>
-      {step < TOTAL_STEPS && (
+      
         <CardFooter className="flex-col gap-4">
             <div className="flex w-full justify-between">
             <Button
@@ -346,12 +385,35 @@ export default function OnboardingPage() {
             >
                 Back
             </Button>
-            <Button type="button" onClick={handleNext} disabled={isLoading}>
+            <Button type="button" onClick={handleNext} disabled={isLoading || isGoogleLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {step === TOTAL_STEPS - 1 ? 'Finish Onboarding' : 'Next'}
+                {step === TOTAL_STEPS ? 'Finish Onboarding' : 'Next'}
             </Button>
             </div>
-            <p className="pt-4 text-center text-sm text-muted-foreground">
+             <div className="relative my-2 w-full">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or
+                </span>
+              </div>
+            </div>
+             <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleGoogleSignIn}
+              disabled={isGoogleLoading || isLoading}
+            >
+              {isGoogleLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <GoogleIcon className="mr-2 h-4 w-4" />
+              )}
+              Sign up with Google
+            </Button>
+            <p className="pt-2 text-center text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link
                 href="/login"
@@ -361,7 +423,6 @@ export default function OnboardingPage() {
             </Link>
             </p>
         </CardFooter>
-      )}
     </Card>
   );
 }
@@ -384,3 +445,5 @@ function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+    
