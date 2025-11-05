@@ -109,3 +109,13 @@ export type Ambassador = {
     eventsHosted: number;
     startDate: Timestamp;
 };
+
+export type Notification = {
+    id?: string;
+    userId: string;
+    title: string;
+    message: string;
+    type: 'event' | 'badge' | 'payment' | 'general';
+    read: boolean;
+    createdAt: Timestamp;
+};

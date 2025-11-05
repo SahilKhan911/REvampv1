@@ -12,12 +12,23 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Bell, Gift } from 'lucide-react';
+import { Badge } from './ui/badge';
+
+// Mock data for notifications
+const notifications = [
+  { id: 1, title: "New Badge Unlocked!", message: "You earned the 'Streak Starter' badge.", read: false, type: 'badge' },
+  { id: 2, title: "Event Reminder", message: "Your event 'Intro to AI' starts in 24 hours.", read: false, type: 'event' },
+  { id: 3, title: "Payment Successful", message: "Your payment for 'Advanced React' was successful.", read: true, type: 'payment' },
+];
 
 export function Header() {
   const { user } = useAuth();
   const pathname = usePathname();
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -74,7 +85,40 @@ export function Header() {
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
           {user ? (
-            <UserNav />
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    {unreadCount > 0 && (
+                      <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 justify-center rounded-full p-0 text-xs">
+                        {unreadCount}
+                      </Badge>
+                    )}
+                    <Bell className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-80" align="end">
+                  <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {notifications.length > 0 ? (
+                    notifications.map(notification => (
+                      <DropdownMenuItem key={notification.id} className={cn("flex items-start gap-3", !notification.read && "bg-muted")}>
+                        <div className='mt-1'>
+                          {notification.type === 'badge' ? <Gift className="h-4 w-4 text-primary" /> : <Bell className="h-4 w-4" />}
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-sm font-medium">{notification.title}</p>
+                          <p className="text-xs text-muted-foreground">{notification.message}</p>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <p className="p-2 text-center text-sm text-muted-foreground">No new notifications</p>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <UserNav />
+            </>
           ) : (
             <Button asChild>
               <Link href="/login">Get Started</Link>
