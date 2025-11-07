@@ -74,9 +74,6 @@ export function Header() {
                   <DropdownMenuItem onClick={() => router.push('/admin/verifications')}>
                     Verifications
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/admin/events/create')}>
-                    Create Event
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/admin/ambassadors')}>
                     Ambassadors
                   </DropdownMenuItem>
@@ -131,3 +128,5 @@ export function Header() {
     </header>
   );
 }
+
+    
