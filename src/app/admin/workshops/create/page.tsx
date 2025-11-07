@@ -1,3 +1,4 @@
+
 'use client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -42,12 +43,13 @@ export default function CreateWorkshopPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            title: '',
-            description: '',
-            location: '',
-            price: 0,
+            title: 'Advanced AI with Gemini',
+            description: 'A hands-on workshop exploring advanced techniques for building with Google\'s Gemini models. We will cover multi-modal inputs, function calling, and performance optimization strategies.',
+            location: 'Online - Google Meet',
+            price: 499,
             maxSeats: 50,
-            time: '14:00',
+            time: '15:00',
+            date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
         },
         mode: 'onChange',
     });
@@ -62,14 +64,14 @@ export default function CreateWorkshopPage() {
         try {
             const [hours, minutes] = values.time.split(':').map(Number);
             const workshopDateTime = new Date(values.date);
-            workshopDateTime.setHours(hours, minutes, 0, 0); // Set hours and minutes, reset seconds/ms
+            workshopDateTime.setHours(hours, minutes, 0, 0);
 
             // Destructure banner from values, as it's handled separately
             const { banner, date, time, ...workshopBaseData } = values;
 
             const workshopData = {
                 ...workshopBaseData,
-                price: workshopBaseData.price,
+                price: workshopBaseData.price, // price is in rupees, convert to paise in backend if needed
                 date: Timestamp.fromDate(workshopDateTime),
             };
             
@@ -181,5 +183,3 @@ export default function CreateWorkshopPage() {
         </div>
     );
 }
-
-    
