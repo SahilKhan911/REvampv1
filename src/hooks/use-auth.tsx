@@ -31,7 +31,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const tokenResult = await firebaseUser.getIdTokenResult();
-        const isAdmin = tokenResult.claims.admin === true;
+        // This is a temporary solution for development to easily test admin features.
+        // In production, you would manage custom claims via a backend.
+        const isAdmin = tokenResult.claims.admin === true || firebaseUser.email === 'admin@revamp.com';
         
         setUser({ ...firebaseUser, isAdmin });
         
