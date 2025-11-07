@@ -1,8 +1,8 @@
 
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import type { Event as EventType, Registration } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -12,14 +12,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Calendar, Ticket, Video } from 'lucide-react';
 import Image from 'next/image';
 import { format, formatDistanceToNow } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-declare global {
-    interface Window {
-        Razorpay: any;
-    }
-}
 
 interface RegisteredEvent extends EventType {
     registration: Registration;
@@ -30,7 +23,7 @@ export default function EventsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { user } = useAuth();
-    const { toast } = useToast();
+    const lumaCalendarUrl = process.env.NEXT_PUBLIC_LUMA_CALENDAR_URL;
 
     useEffect(() => {
         if (!user) {
@@ -97,18 +90,27 @@ export default function EventsPage() {
                 <TabsContent value="discover">
                     <p className="text-muted-foreground my-4">Explore and register for upcoming events from our community.</p>
                      <div className='rounded-xl overflow-hidden border bg-card'>
-                        <iframe 
-                            src="https://luma.com/embed/calendar/cal-j0AQqwaUwA9FEvx/events?lt=dark" 
-                            width="100%" 
-                            height="800" 
-                            frameBorder="0"
-                            allowFullScreen
-                            aria-hidden="false"
-                            tabIndex={0}
-                            style={{
-                                background: 'hsl(var(--card))'
-                            }}
-                        ></iframe>
+                        {lumaCalendarUrl ? (
+                            <iframe 
+                                src={lumaCalendarUrl}
+                                width="100%" 
+                                height="800" 
+                                frameBorder="0"
+                                allowFullScreen
+                                aria-hidden="false"
+                                tabIndex={0}
+                                style={{
+                                    backgroundColor: 'hsl(var(--card))',
+                                }}
+                            ></iframe>
+                        ) : (
+                            <Alert variant="destructive">
+                                <AlertTitle>Configuration Missing</AlertTitle>
+                                <AlertDescription>
+                                    The Luma calendar URL is not set. Please add `NEXT_PUBLIC_LUMA_CALENDAR_URL` to your `.env` file.
+                                </AlertDescription>
+                            </Alert>
+                        )}
                     </div>
                 </TabsContent>
                 <TabsContent value="my-events">
@@ -117,6 +119,12 @@ export default function EventsPage() {
                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {[...Array(3)].map((_, i) => <EventCardSkeleton key={i} />)}
                         </div>
+                     ) : error ? (
+                        <Alert variant="destructive">
+                            <Ticket className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
                      ) : myEvents.length === 0 ? (
                         <Alert>
                             <Ticket className="h-4 w-4" />
@@ -206,5 +214,4 @@ const MyEventCard = ({ event }: { event: RegisteredEvent }) => {
         </div>
     </div>
 );
-
     
