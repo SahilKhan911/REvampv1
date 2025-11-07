@@ -71,6 +71,11 @@ export function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
+                  <DropdownMenuLabel>Management</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => router.push('/admin/workshops')}>
+                    Workshops
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/admin/verifications')}>
                     Verifications
                   </DropdownMenuItem>

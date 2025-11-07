@@ -31,3 +31,15 @@ export async function uploadAmbassadorVideo(userId: string, file: File): Promise
     
     return downloadURL;
 }
+
+export async function uploadWorkshopBanner(workshopId: string, file: File): Promise<string> {
+    const filePath = `workshop-banners/${workshopId}/${file.name}`;
+    const storageRef = ref(storage, filePath);
+
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+
+    return downloadURL;
+}
+
+    

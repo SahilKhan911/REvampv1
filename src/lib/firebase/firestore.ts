@@ -1,8 +1,8 @@
 
 import { doc, setDoc, updateDoc, serverTimestamp, collection, addDoc, getDoc } from 'firebase/firestore';
 import { db } from './config';
-import type { User, Event, AmbassadorApplication } from '@/types';
-import { uploadEventBanner } from './storage';
+import type { User, Event, AmbassadorApplication, Workshop } from '@/types';
+import { uploadEventBanner, uploadWorkshopBanner } from './storage';
 
 type UserCreationData = Omit<User, 'uid' | 'createdAt' | 'verificationStatus' | 'tier' | 'streak' | 'lastActiveDate' | 'collegeIdUrl' | 'studentIdNumber' | 'role'>;
 
@@ -66,3 +66,27 @@ export async function createAmbassadorApplication(userId: string, data: Omit<Amb
     const appRef = await addDoc(applicationCollection, newApplicationData);
     return appRef.id;
 }
+
+
+type WorkshopCreationData = Omit<Workshop, 'id' | 'bannerUrl' | 'createdAt' | 'createdBy'> & { banner: File };
+
+export async function createWorkshop(workshopData: WorkshopCreationData, createdBy: string) {
+    const workshopRef = doc(collection(db, 'workshops'));
+    const workshopId = workshopRef.id;
+
+    const bannerUrl = await uploadWorkshopBanner(workshopId, workshopData.banner);
+
+    const { banner, ...restOfData } = workshopData;
+
+    const newWorkshop: Omit<Workshop, 'id'> = {
+        ...restOfData,
+        bannerUrl,
+        createdBy,
+        createdAt: serverTimestamp() as any,
+    };
+
+    await setDoc(workshopRef, newWorkshop);
+    return workshopId;
+}
+
+    

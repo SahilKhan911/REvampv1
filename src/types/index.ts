@@ -77,7 +77,8 @@ export type Badge = {
 export type Payment = {
     id?: string;
     userId: string;
-    eventId: string;
+    eventId?: string; // Can be for event or workshop
+    workshopId?: string;
     amount: number; // in paise
     razorpayOrderId: string;
     razorpayPaymentId: string;
@@ -119,3 +120,42 @@ export type Notification = {
     read: boolean;
     createdAt: Timestamp;
 };
+
+
+// PART 1: Workshop Schema
+export type Workshop = {
+  id?: string;
+  title: string;
+  description: string;
+  bannerUrl: string;
+  date: Timestamp;
+  duration: number; // In hours
+  meetLink: string;
+  domains: string[];
+  targetYears: number[];
+  isFree: boolean;
+  price?: number; // In paise
+  maxSeats: number;
+  registrationDeadline: Timestamp;
+  certificate: boolean;
+  clustering: 'single' | 'multi-campus';
+  collegeIds: string[];
+  createdBy: string; // Admin's userId
+  createdAt: Timestamp;
+};
+
+// PART 2: Workshop Registration Schema
+export type WorkshopRegistration = {
+  id?: string;
+  workshopId: string;
+  userId: string;
+  collegeId: string;
+  paymentId?: string;
+  paymentStatus: 'pending' | 'success';
+  attended: boolean;
+  feedbackSubmitted: boolean;
+  certificateUrl?: string;
+  registrationDate: Timestamp;
+};
+
+    
