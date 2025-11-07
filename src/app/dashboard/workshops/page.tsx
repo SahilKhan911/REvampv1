@@ -28,13 +28,6 @@ export default function StudentWorkshopsPage() {
     const [isPaying, setIsPaying] = useState<string | null>(null);
     const [registeredWorkshopIds, setRegisteredWorkshopIds] = useState<string[]>([]);
     
-    // In a real app, this user profile data would be fetched from Firestore
-    const userProfile = {
-        college: 'VIT Vellore',
-        year: 1,
-        domains: ['web-dev', 'ai-ml'],
-        id: user?.uid
-    };
 
     useEffect(() => {
         if (!user) {
@@ -54,7 +47,7 @@ export default function StudentWorkshopsPage() {
                 // Fetch all upcoming workshops
                 const workshopsQuery = query(
                     collection(db, 'workshops'), 
-                    where('registrationDeadline', '>', Timestamp.now())
+                    where('date', '>', Timestamp.now())
                 );
 
                 const querySnapshot = await getDocs(workshopsQuery);
@@ -62,13 +55,8 @@ export default function StudentWorkshopsPage() {
                 querySnapshot.forEach((doc) => {
                     const workshop = { id: doc.id, ...doc.data() } as Workshop;
 
-                    // Basic filtering logic
-                    const isNotRegistered = !registeredIds.includes(workshop.id!);
-                    const isForEveryone = workshop.clustering === 'multi-campus';
-                    const isForMyCollege = workshop.collegeIds && workshop.collegeIds.includes(userProfile.college);
-                    const yearMatch = workshop.targetYears.includes(userProfile.year);
-
-                    if (isNotRegistered && yearMatch && (isForEveryone || isForMyCollege)) {
+                    // Show all workshops that the user is not registered for
+                    if (!registeredIds.includes(workshop.id!)) {
                        fetchedWorkshops.push(workshop);
                     }
                 });
@@ -87,13 +75,14 @@ export default function StudentWorkshopsPage() {
     const handleRegistration = async (workshop: Workshop) => {
         if (!user || !workshop.id) return;
         
-        if (workshop.isFree) {
+        const isFree = workshop.price === 0;
+
+        if (isFree) {
             setIsPaying(workshop.id);
             try {
                 await addDoc(collection(db, 'workshopRegistrations'), {
                     workshopId: workshop.id,
                     userId: user.uid,
-                    collegeId: userProfile.college,
                     paymentStatus: 'success', // Free, so success
                     attended: false,
                     feedbackSubmitted: false,
@@ -149,7 +138,6 @@ export default function StudentWorkshopsPage() {
                             await addDoc(collection(db, 'workshopRegistrations'), {
                                 workshopId: workshop.id,
                                 userId: user.uid,
-                                collegeId: userProfile.college,
                                 paymentId: response.razorpay_payment_id,
                                 paymentStatus: 'success',
                                 attended: false,
@@ -203,7 +191,7 @@ export default function StudentWorkshopsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>All Caught Up!</CardTitle>
-                        <CardDescription>No new workshops available for you right now.</CardDescription>
+                        <CardDescription>No new workshops available right now.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg">
                         <School className="h-12 w-12 text-muted-foreground mb-4" />
@@ -226,24 +214,21 @@ export default function StudentWorkshopsPage() {
                                 <CardDescription className="pt-2 line-clamp-3">{workshop.description}</CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
-                                 <div className="flex flex-wrap gap-2">
-                                    {workshop.domains.map(d => <Badge key={d} variant="secondary">{d}</Badge>)}
-                                </div>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="font-semibold text-muted-foreground flex items-center gap-1"><Users className="h-4 w-4" /> Seats</span>
                                     <Badge variant="outline">{workshop.maxSeats}</Badge>
                                 </div>
                                  <div className="flex items-center justify-between text-sm">
                                     <span className="font-semibold text-muted-foreground flex items-center gap-1"><IndianRupee className="h-4 w-4" /> Price</span>
-                                    <Badge variant={workshop.isFree ? 'default' : 'destructive'}>
-                                        {workshop.isFree ? 'Free' : `₹${workshop.price ? workshop.price / 100 : 'N/A'}`}
+                                    <Badge variant={workshop.price === 0 ? 'default' : 'destructive'}>
+                                        {workshop.price === 0 ? 'Free' : `₹${workshop.price ? workshop.price / 100 : 'N/A'}`}
                                     </Badge>
                                 </div>
                             </CardContent>
                             <CardFooter>
                                 <Button className="w-full" onClick={() => handleRegistration(workshop)} disabled={isPaying === workshop.id}>
                                     {isPaying === workshop.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {isPaying === workshop.id ? 'Processing...' : workshop.isFree ? 'Register Now' : `Pay ₹${workshop.price ? workshop.price/100 : ''} to Register`}
+                                    {isPaying === workshop.id ? 'Processing...' : workshop.price === 0 ? 'Register Now' : `Pay ₹${workshop.price ? workshop.price/100 : ''} to Register`}
                                 </Button>
                             </CardFooter>
                         </Card>

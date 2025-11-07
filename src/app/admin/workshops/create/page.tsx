@@ -11,9 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2, UploadCloud, Calendar as CalendarIcon, Clock } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Loader2, UploadCloud, Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -24,34 +22,15 @@ import { Timestamp } from 'firebase/firestore';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-const domainsList = [
-    { id: 'web-dev', label: 'Web Development' },
-    { id: 'mobile-dev', label: 'Mobile Development' },
-    { id: 'ai-ml', label: 'AI/ML' },
-    { id: 'data-science', label: 'Data Science' },
-    { id: 'cybersecurity', label: 'Cybersecurity' },
-    { id: 'product-management', label: 'Product Management' },
-];
-
 const formSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
   description: z.string().min(20, 'Description must be at least 20 characters.'),
   banner: z.instanceof(File).refine(file => file.size <= MAX_FILE_SIZE, 'File size must be 5MB or less.').refine(file => ACCEPTED_FILE_TYPES.includes(file.type), 'Only .jpg, .png, and .webp files are accepted.'),
   date: z.date({ required_error: "A date for the workshop is required." }),
   time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)."),
-  duration: z.coerce.number().min(0.5, 'Duration must be at least 0.5 hours.'),
-  meetLink: z.string().url('Please enter a valid Google Meet or Luma link.'),
-  domains: z.array(z.string()).min(1, 'Select at least one domain.'),
-  targetYears: z.array(z.number()).min(1, 'Select at least one target year.'),
-  isFree: z.boolean(),
-  price: z.coerce.number().optional(),
+  location: z.string().min(5, 'Location or link is required.'),
+  price: z.coerce.number().min(0, 'Price cannot be negative.').default(0),
   maxSeats: z.coerce.number().min(1, 'There must be at least one seat.'),
-  registrationDeadline: z.date({ required_error: "A registration deadline is required." }),
-  certificate: z.boolean(),
-  collegeIds: z.array(z.string()).min(1, 'Select at least one college.'),
-}).refine(data => !data.isFree ? data.price && data.price > 0 : true, {
-    message: "Price must be greater than 0 for paid workshops.",
-    path: ["price"],
 });
 
 export default function CreateWorkshopPage() {
@@ -63,20 +42,13 @@ export default function CreateWorkshopPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            title: 'Advanced React Patterns',
-            description: 'Dive deep into advanced React concepts like higher-order components, render props, context API, and performance optimization techniques. This workshop is for students with a solid foundation in React.',
-            duration: 2.5,
-            meetLink: 'https://meet.google.com/qwe-rty-uio',
-            domains: ['web-dev'],
-            targetYears: [2, 3, 4],
-            isFree: false,
-            price: 299,
-            maxSeats: 40,
-            certificate: true,
-            collegeIds: [],
+            title: '',
+            description: '',
+            location: '',
+            price: 0,
+            maxSeats: 50,
             time: '14:00',
-            date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 2 weeks from now
-            registrationDeadline: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000), // 12 days from now
+            date: new Date(),
         },
         mode: 'onChange',
     });
@@ -99,11 +71,9 @@ export default function CreateWorkshopPage() {
             const workshopData = {
                 ...workshopBaseData,
                 date: Timestamp.fromDate(workshopDateTime),
-                registrationDeadline: Timestamp.fromDate(values.registrationDeadline),
-                price: values.isFree ? 0 : values.price! * 100, // Convert to paise
+                price: values.price * 100, // Convert to paise
             };
             
-            // The createWorkshop function now handles the banner upload internally
             await createWorkshop(workshopData, banner, user.uid);
 
             toast({
@@ -133,13 +103,16 @@ export default function CreateWorkshopPage() {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     <Card>
-                        <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Workshop Details</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <FormField control={form.control} name="title" render={({ field }) => (
                                 <FormItem><FormLabel>Workshop Title</FormLabel><FormControl><Input placeholder="e.g., Intro to Next.js" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="description" render={({ field }) => (
                                 <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Describe what the workshop is about..." {...field} rows={5} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                             <FormField control={form.control} name="location" render={({ field }) => (
+                                <FormItem><FormLabel>Location</FormLabel><FormControl><Input placeholder="e.g., https://meet.google.com/xyz or '123 Main St, Anytown'" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="banner" render={({ field }) => (
                                 <FormItem>
@@ -166,7 +139,7 @@ export default function CreateWorkshopPage() {
                     </Card>
 
                     <Card>
-                        <CardHeader><CardTitle>Schedule & Logistics</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Schedule & Capacity</CardTitle></CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-6">
                              <FormField control={form.control} name="date" render={({ field }) => (
                                 <FormItem className="flex flex-col">
@@ -188,106 +161,11 @@ export default function CreateWorkshopPage() {
                              <FormField control={form.control} name="time" render={({ field }) => (
                                 <FormItem><FormLabel>Start Time (24h format)</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
-                            <FormField control={form.control} name="duration" render={({ field }) => (
-                               <FormItem><FormLabel>Duration (in hours)</FormLabel><FormControl><Input type="number" step="0.5" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="meetLink" render={({ field }) => (
-                                <FormItem><FormLabel>Google Meet / Luma Link</FormLabel><FormControl><Input placeholder="https://meet.google.com/..." {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                        </CardContent>
-                    </Card>
-
-                     <Card>
-                        <CardHeader><CardTitle>Target Audience</CardTitle></CardHeader>
-                        <CardContent className="space-y-6">
-                             <FormField control={form.control} name="domains" render={() => (
-                                <FormItem>
-                                    <FormLabel>Relevant Domains</FormLabel>
-                                    <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
-                                    {domainsList.map((item) => (
-                                        <FormField key={item.id} control={form.control} name="domains" render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                                <FormControl><Checkbox checked={field.value?.includes(item.id)} onCheckedChange={(checked) => { return checked ? field.onChange([...field.value, item.id]) : field.onChange(field.value?.filter((value) => value !== item.id))}} /></FormControl>
-                                                <FormLabel className="font-normal">{item.label}</FormLabel>
-                                            </FormItem>
-                                        )} />
-                                    ))}
-                                    </div><FormMessage />
-                                </FormItem>
-                             )} />
-                             <FormField control={form.control} name="targetYears" render={() => (
-                                <FormItem>
-                                    <FormLabel>Target Years</FormLabel>
-                                    <div className='flex items-center gap-4'>
-                                    {[1,2,3,4].map((year) => (
-                                        <FormField key={year} control={form.control} name="targetYears" render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                                <FormControl><Checkbox checked={field.value?.includes(year)} onCheckedChange={(checked) => { return checked ? field.onChange([...field.value, year]) : field.onChange(field.value?.filter((value) => value !== year))}} /></FormControl>
-                                                <FormLabel className="font-normal">{year}{['st', 'nd', 'rd', 'th'][year - 1]} Year</FormLabel>
-                                            </FormItem>
-                                        )} />
-                                    ))}
-                                    </div><FormMessage />
-                                </FormItem>
-                             )} />
-                            <FormField control={form.control} name="collegeIds" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Target Colleges</FormLabel>
-                                    <FormDescription>Enter college IDs, comma-separated. Leave empty for all colleges.</FormDescription>
-                                    <FormControl>
-                                        <Input 
-                                            placeholder="e.g., vit-vellore,srm-chennai" 
-                                            onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                                            defaultValue={Array.isArray(field.value) ? field.value.join(',') : ''}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader><CardTitle>Registration & Payment</CardTitle></CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-6">
-                             <FormField control={form.control} name="isFree" render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 col-span-2">
-                                    <div className="space-y-0.5"><FormLabel>Paid Workshop?</FormLabel><FormDescription>Is this a paid workshop?</FormDescription></div>
-                                    <FormControl><Checkbox checked={!field.value} onCheckedChange={(checked) => field.onChange(!checked)} /></FormControl>
-                                </FormItem>
-                            )} />
-                             {!form.watch('isFree') && (
-                                <FormField control={form.control} name="price" render={({ field }) => (
-                                    <FormItem><FormLabel>Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g., 499" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>
+                             <FormField control={form.control} name="price" render={({ field }) => (
+                                    <FormItem><FormLabel>Price (₹)</FormLabel><FormControl><Input type="number" placeholder="Enter 0 for a free workshop" {...field} /></FormControl><FormMessage /></FormItem>
                                 )} />
-                             )}
                              <FormField control={form.control} name="maxSeats" render={({ field }) => (
-                               <FormItem><FormLabel>Max Seats</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}/></FormControl><FormMessage /></FormItem>
-                            )} />
-                             <FormField control={form.control} name="registrationDeadline" render={({ field }) => (
-                                <FormItem className="flex flex-col"><FormLabel>Registration Deadline</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild><FormControl>
-                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                {field.value ? format(field.value, "PPP") : <span>Pick a deadline</span>}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl></PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-                                    </Popover><FormMessage />
-                                </FormItem>
-                            )} />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader><CardTitle>Completion</CardTitle></CardHeader>
-                        <CardContent>
-                             <FormField control={form.control} name="certificate" render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                    <div className="space-y-0.5"><FormLabel>Certificate on Completion</FormLabel><FormDescription>Award a certificate to attendees who complete the workshop.</FormDescription></div>
-                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                </FormItem>
+                               <FormItem><FormLabel>Max Capacity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                         </CardContent>
                     </Card>
@@ -304,4 +182,3 @@ export default function CreateWorkshopPage() {
         </div>
     );
 }
-    

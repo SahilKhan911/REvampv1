@@ -127,16 +127,9 @@ export type Workshop = {
   description: string;
   bannerUrl: string;
   date: Timestamp;
-  duration: number; // In hours
-  meetLink: string;
-  domains: string[];
-  targetYears: number[];
-  isFree: boolean;
+  location: string;
   price: number; // In paise
   maxSeats: number;
-  registrationDeadline: Timestamp;
-  certificate: boolean;
-  collegeIds: string[];
   createdBy: string; // Admin's userId
   createdAt: Timestamp;
 };
@@ -145,12 +138,15 @@ export type WorkshopRegistration = {
   id?: string;
   workshopId: string;
   userId: string;
-  collegeId: string;
   paymentId?: string;
   paymentStatus: 'pending' | 'success';
   attended: boolean;
   feedbackSubmitted: boolean;
   certificateUrl?: string;
   registrationDate: Timestamp;
+  name: string; // Attendee name
+  email: string; // Attendee email
+  phone: string; // Attendee phone
+  organization?: string;
 };
     
