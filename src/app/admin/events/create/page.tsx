@@ -35,6 +35,7 @@ import { uploadEventBanner } from '@/lib/firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import type { College } from '@/types';
 import { Timestamp } from 'firebase/firestore';
+import { fetchLumaEventDetails } from '@/ai/flows/fetch-luma-event-details';
 
 const MAX_BANNER_SIZE = 1 * 1024 * 1024; // 1MB
 const ACCEPTED_BANNER_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -105,12 +106,21 @@ export default function CreateEventPage() {
       return;
     }
     setIsFetchingLuma(true);
-    // In a real implementation, you would call a Genkit flow here
-    // that scrapes the Luma page and returns structured data.
-    // For now, we'll just simulate a delay and a success message.
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    toast({ title: "Luma Fetch (Simulated)", description: "In a real app, event data would now be populated from the URL." });
-    setIsFetchingLuma(false);
+    try {
+        const eventDetails = await fetchLumaEventDetails({ url: lumaUrl });
+        
+        form.setValue('title', eventDetails.title, { shouldValidate: true });
+        form.setValue('description', eventDetails.description, { shouldValidate: true });
+        form.setValue('date', new Date(eventDetails.date), { shouldValidate: true });
+
+        toast({ title: "Luma Details Fetched", description: "Event data has been populated from the URL." });
+
+    } catch(error: any) {
+        console.error("Luma fetch error:", error);
+        toast({ title: "Fetch Failed", description: error.message || "Could not fetch details from Luma URL.", variant: "destructive" });
+    } finally {
+        setIsFetchingLuma(false);
+    }
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -130,7 +140,6 @@ export default function CreateEventPage() {
           date: Timestamp.fromDate(eventDate),
           bannerUrl,
           price: values.isFree ? 0 : values.price! * 100, // convert to paise
-          meetLink: values.lumaUrl || '',
       };
       // @ts-ignore
       delete eventData.banner;
@@ -178,7 +187,7 @@ export default function CreateEventPage() {
                                 Fetch
                             </Button>
                       </div>
-                      <FormDescription>This will be used as the registration and meeting link.</FormDescription>
+                      <FormDescription>This will auto-fill event details.</FormDescription>
                       <FormMessage />
                       </FormItem>
                   )}

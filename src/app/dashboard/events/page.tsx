@@ -128,7 +128,8 @@ export default function EventsPage() {
 
         if (event.isFree) {
              // In a real app, check for verification status before giving Luma link
-            window.open(event.lumaUrl || '#', '_blank');
+            if (event.lumaUrl) window.open(event.lumaUrl, '_blank');
+            else toast({ title: "No Luma URL", description: "This event does not have a registration link.", variant: "destructive"});
             return;
         }
 
@@ -363,8 +364,8 @@ const MyEventCard = ({ event }: { event: RegisteredEvent }) => {
             <div className="p-6 bg-muted/50">
                 {isUpcoming ? (
                     <Button className='w-full' disabled={!isJoinable} asChild>
-                        <a href={event.meetLink} target="_blank" rel="noopener noreferrer">
-                            <Video className='mr-2 h-4 w-4'/> Join Meet
+                        <a href={event.lumaUrl} target="_blank" rel="noopener noreferrer">
+                            <Video className='mr-2 h-4 w-4'/> Join Event
                         </a>
                     </Button>
                 ) : (
