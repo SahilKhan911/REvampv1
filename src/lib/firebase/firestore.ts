@@ -1,7 +1,6 @@
-
 import { doc, setDoc, updateDoc, serverTimestamp, collection, addDoc, getDoc } from 'firebase/firestore';
 import { db } from './config';
-import type { User, Event, AmbassadorApplication, Workshop } from '@/types';
+import type { User, Event, AmbassadorApplication, Workshop, EventRegistration } from '@/types';
 import { uploadEventBanner, uploadWorkshopBanner } from './storage';
 
 type UserCreationData = Omit<User, 'uid' | 'createdAt' | 'verificationStatus' | 'tier' | 'streak' | 'lastActiveDate' | 'collegeIdUrl' | 'studentIdNumber' | 'role'>;
@@ -28,27 +27,21 @@ export async function updateUserDocument(userId: string, data: Partial<User>) {
     });
 }
 
-// Omit id, bannerUrl, createdAt, createdBy from the input data type
-type EventCreationData = Omit<Event, 'id' | 'bannerUrl' | 'createdAt' | 'createdBy'> & { banner: File };
+type EventCreationData = Omit<Event, 'id' | 'bannerUrl' | 'createdAt' | 'createdBy'>;
 
-export async function createEvent(eventData: EventCreationData, createdBy: string) {
-    // 1. Create a new document reference with a generated ID
+export async function createEvent(eventData: EventCreationData, bannerFile: File, createdBy: string) {
     const eventRef = doc(collection(db, 'events'));
     const eventId = eventRef.id;
 
-    // 2. Upload the banner using the new event ID
-    const bannerUrl = await uploadEventBanner(eventId, eventData.banner);
+    const bannerUrl = await uploadEventBanner(eventId, bannerFile);
 
-    // 3. Prepare the final event data
-    const { banner, ...restOfEventData } = eventData;
-    const newEvent = {
-        ...restOfEventData,
+    const newEvent: Omit<Event, 'id'> = {
+        ...eventData,
         bannerUrl,
         createdBy,
-        createdAt: serverTimestamp(),
+        createdAt: serverTimestamp() as any,
     };
 
-    // 4. Set the document data with the final object
     await setDoc(eventRef, newEvent);
 
     return eventId;
@@ -68,18 +61,16 @@ export async function createAmbassadorApplication(userId: string, data: Omit<Amb
 }
 
 
-type WorkshopCreationData = Omit<Workshop, 'id' | 'bannerUrl' | 'createdAt' | 'createdBy'> & { banner: File };
+type WorkshopCreationData = Omit<Workshop, 'id' | 'bannerUrl' | 'createdAt' | 'createdBy'>;
 
-export async function createWorkshop(workshopData: WorkshopCreationData, createdBy: string) {
+export async function createWorkshop(workshopData: WorkshopCreationData, bannerFile: File, createdBy: string) {
     const workshopRef = doc(collection(db, 'workshops'));
     const workshopId = workshopRef.id;
 
-    const bannerUrl = await uploadWorkshopBanner(workshopId, workshopData.banner);
-
-    const { banner, ...restOfData } = workshopData;
+    const bannerUrl = await uploadWorkshopBanner(workshopId, bannerFile);
 
     const newWorkshop: Omit<Workshop, 'id'> = {
-        ...restOfData,
+        ...workshopData,
         bannerUrl,
         createdBy,
         createdAt: serverTimestamp() as any,
@@ -88,5 +79,4 @@ export async function createWorkshop(workshopData: WorkshopCreationData, created
     await setDoc(workshopRef, newWorkshop);
     return workshopId;
 }
-
     

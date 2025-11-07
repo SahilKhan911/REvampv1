@@ -48,8 +48,7 @@ const formSchema = z.object({
   maxSeats: z.coerce.number().min(1, 'There must be at least one seat.'),
   registrationDeadline: z.date({ required_error: "A registration deadline is required." }),
   certificate: z.boolean(),
-  clustering: z.enum(['single', 'multi-campus']),
-  collegeIds: z.array(z.string()), // For simplicity, we'll use a text input for now.
+  collegeIds: z.array(z.string()).min(1, 'Select at least one college.'),
 }).refine(data => !data.isFree ? data.price && data.price > 0 : true, {
     message: "Price must be greater than 0 for paid workshops.",
     path: ["price"],
@@ -74,7 +73,6 @@ export default function CreateWorkshopPage() {
             price: 299,
             maxSeats: 40,
             certificate: true,
-            clustering: 'multi-campus',
             collegeIds: [],
             time: '14:00',
             date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 2 weeks from now
@@ -95,14 +93,18 @@ export default function CreateWorkshopPage() {
             const workshopDateTime = new Date(values.date);
             workshopDateTime.setHours(hours, minutes);
 
+            // Destructure banner from values, as it's handled separately
+            const { banner, ...workshopBaseData } = values;
+
             const workshopData = {
-                ...values,
+                ...workshopBaseData,
                 date: Timestamp.fromDate(workshopDateTime),
                 registrationDeadline: Timestamp.fromDate(values.registrationDeadline),
                 price: values.isFree ? 0 : values.price! * 100, // Convert to paise
             };
-
-            await createWorkshop(workshopData, user.uid);
+            
+            // The createWorkshop function now handles the banner upload internally
+            await createWorkshop(workshopData, banner, user.uid);
 
             toast({
                 title: 'Workshop Created!',
@@ -228,14 +230,20 @@ export default function CreateWorkshopPage() {
                                     </div><FormMessage />
                                 </FormItem>
                              )} />
-                             <FormField control={form.control} name="clustering" render={({ field }) => (
-                                <FormItem><FormLabel>College Clustering</FormLabel><FormControl>
-                                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
-                                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="multi-campus" /></FormControl><FormLabel className="font-normal">Multi-Campus (All Colleges)</FormLabel></FormItem>
-                                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="single" /></FormControl><FormLabel className="font-normal">Single College</FormLabel></FormItem>
-                                    </RadioGroup>
-                                </FormControl></FormItem>
-                             )} />
+                            <FormField control={form.control} name="collegeIds" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Target Colleges</FormLabel>
+                                    <FormDescription>Enter college IDs, comma-separated. Leave empty for all colleges.</FormDescription>
+                                    <FormControl>
+                                        <Input 
+                                            placeholder="e.g., vit-vellore,srm-chennai" 
+                                            onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                                            defaultValue={Array.isArray(field.value) ? field.value.join(',') : ''}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
                         </CardContent>
                     </Card>
 
@@ -250,11 +258,11 @@ export default function CreateWorkshopPage() {
                             )} />
                              {!form.watch('isFree') && (
                                 <FormField control={form.control} name="price" render={({ field }) => (
-                                    <FormItem><FormLabel>Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g., 499" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g., 499" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>
                                 )} />
                              )}
                              <FormField control={form.control} name="maxSeats" render={({ field }) => (
-                               <FormItem><FormLabel>Max Seats</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                               <FormItem><FormLabel>Max Seats</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}/></FormControl><FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="registrationDeadline" render={({ field }) => (
                                 <FormItem className="flex flex-col"><FormLabel>Registration Deadline</FormLabel>

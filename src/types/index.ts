@@ -38,7 +38,7 @@ export type Event = {
   price: number; // in paise
   domains: string[];
   targetYears: number[];
-  colleges: string[];
+  collegeIds: string[];
   createdAt: Timestamp;
   createdBy: string; // userId
   lumaUrl?: string;
@@ -51,7 +51,7 @@ export type LumaEvent = {
   collegeId?: string; // nullable for multi-campus
 };
 
-export type Registration = {
+export type EventRegistration = {
   id: string;
   userId: string;
   eventId: string;
@@ -121,8 +121,6 @@ export type Notification = {
     createdAt: Timestamp;
 };
 
-
-// PART 1: Workshop Schema
 export type Workshop = {
   id?: string;
   title: string;
@@ -134,17 +132,15 @@ export type Workshop = {
   domains: string[];
   targetYears: number[];
   isFree: boolean;
-  price?: number; // In paise
+  price: number; // In paise
   maxSeats: number;
   registrationDeadline: Timestamp;
   certificate: boolean;
-  clustering: 'single' | 'multi-campus';
   collegeIds: string[];
   createdBy: string; // Admin's userId
   createdAt: Timestamp;
 };
 
-// PART 2: Workshop Registration Schema
 export type WorkshopRegistration = {
   id?: string;
   workshopId: string;
@@ -157,5 +153,4 @@ export type WorkshopRegistration = {
   certificateUrl?: string;
   registrationDate: Timestamp;
 };
-
     
