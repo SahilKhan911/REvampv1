@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { CalendarIcon, Loader2, UploadCloud } from 'lucide-react';
+import { CalendarIcon, Loader2, UploadCloud, Link as LinkIcon } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,7 @@ const collegesList: College[] = [
 ]
 
 const formSchema = z.object({
+  lumaUrl: z.string().url('Please enter a valid Luma URL.').optional(),
   title: z.string().min(5, 'Title must be at least 5 characters.'),
   description: z.string().min(20, 'Description must be at least 20 characters.'),
   banner: z.instanceof(File).refine(file => file.size <= MAX_BANNER_SIZE, 'Banner size must be 1MB or less.').refine(file => ACCEPTED_BANNER_TYPES.includes(file.type), 'Only .jpg, .png, and .webp files are accepted.'),
@@ -78,10 +79,12 @@ export default function CreateEventPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingLuma, setIsFetchingLuma] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      lumaUrl: '',
       title: '',
       description: '',
       date: new Date(),
@@ -99,6 +102,21 @@ export default function CreateEventPage() {
 
   const isFree = form.watch('isFree');
 
+  const handleFetchFromLuma = async () => {
+    const lumaUrl = form.getValues('lumaUrl');
+    if (!lumaUrl || !z.string().url().safeParse(lumaUrl).success) {
+      toast({ title: "Invalid URL", description: "Please enter a valid Luma event URL.", variant: "destructive"});
+      return;
+    }
+    setIsFetchingLuma(true);
+    // In a real implementation, you would call a Genkit flow here
+    // that scrapes the Luma page and returns structured data.
+    // For now, we'll just simulate a delay and a success message.
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    toast({ title: "Luma Fetch (Simulated)", description: "In a real app, event data would now be populated from the URL." });
+    setIsFetchingLuma(false);
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
         toast({ title: "Authentication Error", description: "You must be logged in to create an event.", variant: "destructive" });
@@ -111,15 +129,9 @@ export default function CreateEventPage() {
       const eventDate = new Date(values.date);
       eventDate.setHours(hours, minutes);
 
-      // 1. Create a placeholder event document to get an ID
-      // This is a simplified approach. A more robust way is using a callable function
-      // to create the doc and upload in one transaction.
       const tempEventId = `temp_${Date.now()}`;
-
-      // 2. Upload banner
       const bannerUrl = await uploadEventBanner(tempEventId, values.banner);
 
-      // 3. Create final event data
       const eventData = {
           ...values,
           date: Timestamp.fromDate(eventDate),
@@ -133,9 +145,6 @@ export default function CreateEventPage() {
 
       const eventId = await createEvent(eventData, user.uid);
       
-      // Ideally, you'd now rename the banner in storage from temp id to final id.
-      // This is an advanced operation not covered here for simplicity.
-
       toast({
         title: 'Event Created Successfully!',
         description: `${values.title} is now live.`,
@@ -157,9 +166,43 @@ export default function CreateEventPage() {
   return (
     <div className="container py-8">
        <h1 className="text-3xl font-bold font-headline mb-2">Create New Event</h1>
-       <p className="text-muted-foreground mb-8">Fill in the details to set up your next event.</p>
+       <p className="text-muted-foreground mb-8">Add a Luma link to auto-fill details or create an event manually.</p>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            
+            <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="lumaUrl"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Luma Event Link</FormLabel>
+                      <div className="flex gap-2">
+                          <FormControl>
+                            <Input placeholder="https://lu.ma/..." {...field} />
+                          </FormControl>
+                           <Button type="button" onClick={handleFetchFromLuma} disabled={isFetchingLuma}>
+                                {isFetchingLuma ? <Loader2 className='h-4 w-4 animate-spin' /> : <LinkIcon className='h-4 w-4'/>}
+                                Fetch
+                            </Button>
+                      </div>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                />
+            </div>
+            
+             <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or fill manually
+                </span>
+              </div>
+            </div>
+
             <FormField
               control={form.control}
               name="title"

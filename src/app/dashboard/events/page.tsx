@@ -1,18 +1,16 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, serverTimestamp, collectionGroup } from 'firebase/firestore';
 import type { Event as EventType, Registration } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Calendar, Ticket, ArrowRight, Loader2, CheckCircle, Video } from 'lucide-react';
+import { Calendar, Ticket, ArrowRight, Loader2, CheckCircle, Video, Users, MapPin, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, isSameDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -62,17 +60,21 @@ export default function EventsPage() {
                 const registeredEventsData: RegisteredEvent[] = [];
                 if (registeredEventIds.length > 0) {
                     const eventsRef = collection(db, 'events');
-                    // Firestore 'in' query is limited to 10 items. For more, you'd need multiple queries.
-                    const eventsQuery = query(eventsRef, where('__name__', 'in', registeredEventIds));
-                    const eventsSnapshot = await getDocs(eventsQuery);
-                    
-                    eventsSnapshot.forEach(doc => {
-                        const eventData = { id: doc.id, ...doc.data() } as EventType;
-                        const registration = registrations.find(r => r.eventId === doc.id);
-                        if (registration) {
-                            registeredEventsData.push({ ...eventData, registration });
-                        }
-                    });
+                    const chunks = [];
+                    for (let i = 0; i < registeredEventIds.length; i += 30) {
+                        chunks.push(registeredEventIds.slice(i, i + 30));
+                    }
+                    for (const chunk of chunks) {
+                        const eventsQuery = query(eventsRef, where('__name__', 'in', chunk));
+                        const eventsSnapshot = await getDocs(eventsQuery);
+                        eventsSnapshot.forEach(doc => {
+                            const eventData = { id: doc.id, ...doc.data() } as EventType;
+                            const registration = registrations.find(r => r.eventId === doc.id);
+                            if (registration) {
+                                registeredEventsData.push({ ...eventData, registration });
+                            }
+                        });
+                    }
                 }
                 setMyEvents(registeredEventsData);
 
@@ -88,10 +90,9 @@ export default function EventsPage() {
                 const fetchedEvents: EventType[] = [];
                 allEventsSnapshot.forEach((doc) => {
                     const eventData = { id: doc.id, ...doc.data() } as EventType;
-                    if (eventData.colleges.includes(userProfile.college) || eventData.domains.includes(userProfile.primaryDomain)) {
-                       if (eventData.date.toDate() > new Date() && !registeredEventIds.includes(eventData.id!)) {
-                         fetchedEvents.push(eventData);
-                       }
+                    const isRelevant = eventData.colleges.includes(userProfile.college) || eventData.domains.some(d => userProfile.primaryDomain === d);
+                    if (isRelevant && eventData.date.toDate() > new Date() && !registeredEventIds.includes(eventData.id!)) {
+                       fetchedEvents.push(eventData);
                     }
                 });
                 setAllEvents(fetchedEvents);
@@ -106,6 +107,17 @@ export default function EventsPage() {
         
         fetchAllData();
     }, [user]);
+
+     const groupedEvents = useMemo(() => {
+        return allEvents.reduce((acc, event) => {
+            const dateStr = format(event.date.toDate(), 'yyyy-MM-dd');
+            if (!acc[dateStr]) {
+                acc[dateStr] = [];
+            }
+            acc[dateStr].push(event);
+            return acc;
+        }, {} as Record<string, EventType[]>);
+    }, [allEvents]);
 
     const handleRegistration = async (event: EventType) => {
         if (!user || !event.id) return;
@@ -219,8 +231,12 @@ export default function EventsPage() {
                 <TabsContent value="discover">
                      <p className="text-muted-foreground my-4">Find events tailored to your interests and college.</p>
                      {isLoading ? (
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {[...Array(3)].map((_, i) => <EventCardSkeleton key={i} />)}
+                        <div className="space-y-8">
+                            <Skeleton className="h-8 w-1/3" />
+                            <div className="space-y-4">
+                                <EventListItemSkeleton />
+                                <EventListItemSkeleton />
+                            </div>
                         </div>
                     ) : error ? (
                         <Alert variant="destructive">
@@ -235,9 +251,19 @@ export default function EventsPage() {
                             <AlertDescription>There are no new events matching your profile right now. Check back later!</AlertDescription>
                         </Alert>
                     ) : (
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {allEvents.map(event => (
-                                <EventCard key={event.id} event={event} onRegister={handleRegistration} isPaying={isPaying} />
+                        <div className="space-y-8">
+                            {Object.entries(groupedEvents).map(([dateStr, events]) => (
+                                <div key={dateStr}>
+                                    <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                                       <div className="h-2 w-2 rounded-full bg-primary" />
+                                       {format(new Date(dateStr), 'MMM d, EEEE')}
+                                    </h2>
+                                    <div className="space-y-1 border-l-2 border-border ml-1 pl-7">
+                                        {events.map(event => (
+                                            <EventListItem key={event.id} event={event} onRegister={handleRegistration} isPaying={isPaying} />
+                                        ))}
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     )}
@@ -284,60 +310,57 @@ export default function EventsPage() {
     );
 }
 
-
-const EventCard = ({ event, onRegister, isPaying }: { event: EventType, onRegister: (event: EventType) => void, isPaying: string | null }) => (
-    <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg">
-        <CardHeader className="p-0">
-            <div className="relative aspect-video w-full">
-                <Image src={event.bannerUrl} alt={event.title} fill className="object-cover" />
+const EventListItem = ({ event, onRegister, isPaying }: { event: EventType, onRegister: (event: EventType) => void, isPaying: string | null }) => (
+    <div className="flex items-center gap-4 group -ml-2">
+        <div className="w-16 text-right text-sm">
+            <p className="font-semibold text-foreground">{format(event.date.toDate(), 'p')}</p>
+        </div>
+        <div className="flex-1 p-4 rounded-lg bg-card border border-transparent group-hover:border-primary/50 transition-colors">
+            <div className="flex justify-between items-start gap-4">
+                <div className='flex-1'>
+                    <h3 className="font-bold text-lg">{event.title}</h3>
+                    <div className="text-muted-foreground text-sm mt-1 space-y-1">
+                        <p className="flex items-center gap-2"><Users className="h-4 w-4" /> REvamp Community</p>
+                        <p className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Online</p>
+                    </div>
+                    <div className='mt-3'>
+                        <Button onClick={() => onRegister(event)} disabled={isPaying === event.id} size="sm">
+                            {isPaying === event.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {isPaying === event.id ? 'Processing...' : event.isFree ? 'Register on Luma' : `Pay ₹${event.price / 100}`} 
+                            {!isPaying && <ExternalLink className="ml-2 h-4 w-4" />}
+                        </Button>
+                    </div>
+                </div>
+                <div className="flex-shrink-0">
+                    <Image src={event.bannerUrl} alt={event.title} width={120} height={120} className="rounded-md object-cover aspect-square" />
+                </div>
             </div>
-        </CardHeader>
-        <CardContent className="p-6 flex-grow">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                <Calendar className="h-4 w-4" />
-                <span>{format(event.date.toDate(), 'PPP, p')}</span>
-            </div>
-            <CardTitle className="font-headline text-xl mb-2">{event.title}</CardTitle>
-            <div className="flex flex-wrap gap-2">
-                {event.domains.map(domain => <Badge key={domain} variant="secondary">{domain}</Badge>)}
-            </div>
-        </CardContent>
-        <CardFooter className="p-6 bg-muted/50 flex justify-between items-center">
-             <div>
-                <span className="font-bold text-lg">{event.isFree ? 'Free' : `₹${event.price / 100}`}</span>
-            </div>
-            <Button onClick={() => onRegister(event)} disabled={isPaying === event.id}>
-                {isPaying === event.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {isPaying === event.id ? 'Processing...' : event.isFree ? 'Register' : 'Pay & Register'} 
-                {!isPaying && <ArrowRight className="ml-2 h-4 w-4" />}
-            </Button>
-        </CardFooter>
-    </Card>
+        </div>
+    </div>
 );
+
 
 const MyEventCard = ({ event }: { event: RegisteredEvent }) => {
     const isUpcoming = event.date.toDate() > new Date();
     const isJoinable = isUpcoming && (event.date.toDate().getTime() - new Date().getTime()) < 60 * 60 * 1000;
     
     return (
-        <Card className="flex flex-col overflow-hidden">
-            <CardHeader className="p-0">
-                <div className="relative aspect-video w-full">
-                    <Image src={event.bannerUrl} alt={event.title} fill className="object-cover" />
-                     <Badge className='absolute top-2 right-2' variant={event.registration.attended ? 'default' : 'secondary'}>
-                        {event.registration.attended ? 'Attended' : isUpcoming ? 'Registered' : 'Not Attended'}
-                    </Badge>
-                </div>
-            </CardHeader>
-            <CardContent className="p-6 flex-grow">
+        <div className="flex flex-col overflow-hidden transition-all hover:shadow-lg rounded-lg border bg-card">
+            <div className="relative aspect-video w-full">
+                <Image src={event.bannerUrl} alt={event.title} fill className="object-cover" />
+                 <Badge className='absolute top-2 right-2' variant={event.registration.attended ? 'default' : 'secondary'}>
+                    {event.registration.attended ? 'Attended' : isUpcoming ? 'Registered' : 'Not Attended'}
+                </Badge>
+            </div>
+            <div className="p-6 flex-grow">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                     <Calendar className="h-4 w-4" />
                     <span>{format(event.date.toDate(), 'PPP, p')}</span>
                 </div>
-                <CardTitle className="font-headline text-xl mb-2">{event.title}</CardTitle>
+                <h3 className="font-headline text-xl mb-2">{event.title}</h3>
                 {isUpcoming && <p className='text-sm text-primary font-semibold'>Starts {formatDistanceToNow(event.date.toDate(), { addSuffix: true })}</p>}
-            </CardContent>
-            <CardFooter className="p-6 bg-muted/50">
+            </div>
+            <div className="p-6 bg-muted/50">
                 {isUpcoming ? (
                     <Button className='w-full' disabled={!isJoinable} asChild>
                         <a href={event.meetLink} target="_blank" rel="noopener noreferrer">
@@ -347,25 +370,47 @@ const MyEventCard = ({ event }: { event: RegisteredEvent }) => {
                 ) : (
                     <Button variant='secondary' className='w-full' disabled={!event.registration.attended}>Download Certificate</Button>
                 )}
-            </CardFooter>
-        </Card>
+            </div>
+        </div>
     );
 };
 
+const EventListItemSkeleton = () => (
+    <div className="flex items-center gap-4 group -ml-2">
+        <div className="w-16 text-right">
+            <Skeleton className='h-4 w-12' />
+        </div>
+        <div className="flex-1 p-4 rounded-lg bg-card border">
+            <div className="flex justify-between items-start gap-4">
+                <div className='flex-1 space-y-3'>
+                    <Skeleton className='h-6 w-3/4' />
+                    <Skeleton className='h-4 w-1/2' />
+                    <Skeleton className='h-4 w-1/3' />
+                     <Skeleton className='h-9 w-24' />
+                </div>
+                <div className="flex-shrink-0">
+                    <Skeleton className='w-[120px] h-[120px] rounded-md' />
+                </div>
+            </div>
+        </div>
+    </div>
+)
+
+
  const EventCardSkeleton = () => (
-    <Card className="flex flex-col overflow-hidden">
+    <div className="flex flex-col overflow-hidden rounded-lg border bg-card">
         <Skeleton className="w-full aspect-video" />
-        <CardContent className="p-6 space-y-4">
+        <div className="p-6 space-y-4">
              <Skeleton className="h-4 w-3/4" />
              <Skeleton className="h-6 w-full" />
              <div className="flex gap-2">
                 <Skeleton className="h-5 w-16" />
                 <Skeleton className="h-5 w-20" />
              </div>
-        </CardContent>
-        <CardFooter className="p-6 bg-muted/50 flex justify-between items-center">
+        </div>
+        <div className="p-6 bg-muted/50 flex justify-between items-center">
             <Skeleton className="h-8 w-1/4" />
             <Skeleton className="h-10 w-1/3" />
-        </CardFooter>
-    </Card>
+        </div>
+    </div>
 );
