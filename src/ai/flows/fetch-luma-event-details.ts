@@ -72,7 +72,7 @@ const fetchLumaEventDetailsFlow = ai.defineFlow(
       },
     });
 
-    const output = llmResponse.output();
+    const output = llmResponse.output;
     if (!output) {
       throw new Error('Failed to parse event details from Luma URL.');
     }
