@@ -57,7 +57,7 @@ const collegesList: College[] = [
 ]
 
 const formSchema = z.object({
-  lumaUrl: z.string().url('Please enter a valid Luma URL.').optional(),
+  lumaUrl: z.string().url('Please enter a valid Luma URL.').optional().or(z.literal('')),
   title: z.string().min(5, 'Title must be at least 5 characters.'),
   description: z.string().min(20, 'Description must be at least 20 characters.'),
   banner: z.instanceof(File).refine(file => file.size <= MAX_BANNER_SIZE, 'Banner size must be 1MB or less.').refine(file => ACCEPTED_BANNER_TYPES.includes(file.type), 'Only .jpg, .png, and .webp files are accepted.'),
@@ -474,3 +474,5 @@ export default function CreateEventPage() {
     </div>
   );
 }
+
+    
