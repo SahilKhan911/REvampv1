@@ -75,6 +75,8 @@ export default function CreateWorkshopPage() {
             certificate: false,
             clustering: 'multi-campus',
             collegeIds: [],
+            time: '10:00',
+            price: 0,
         },
         mode: 'onChange',
     });
