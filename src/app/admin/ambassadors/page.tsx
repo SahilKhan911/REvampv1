@@ -2,7 +2,7 @@
 'use client';
 import { useState, useEffect }from 'react';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, getDoc, Timestamp } from 'firebase/firestore';
 import type { AmbassadorApplication, User } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -83,6 +83,13 @@ export default function AmbassadorApplicationsPage() {
             });
         }
     };
+    
+    const getAppliedDate = (appliedAt: Timestamp | Date) => {
+        if (appliedAt instanceof Timestamp) {
+            return appliedAt.toDate();
+        }
+        return appliedAt;
+    }
 
     if (isLoading) {
         return (
@@ -134,7 +141,7 @@ export default function AmbassadorApplicationsPage() {
                                     <div>
                                         <CardTitle>{app.applicant?.name}</CardTitle>
                                         <CardDescription>{app.applicant?.college} &middot; {app.applicant?.year} Year</CardDescription>
-                                        <CardDescription>Applied {formatDistanceToNow(app.appliedAt.toDate(), { addSuffix: true })}</CardDescription>
+                                        <CardDescription>Applied {formatDistanceToNow(getAppliedDate(app.appliedAt), { addSuffix: true })}</CardDescription>
                                     </div>
                                 </div>
                             </CardHeader>

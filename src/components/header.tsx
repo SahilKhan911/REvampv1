@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { UserNav } from '@/components/user-nav';
 import { LogoIcon } from '@/components/icons';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -28,6 +29,7 @@ const notifications = [
 export function Header() {
   const { user } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -69,13 +71,13 @@ export function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={() => window.location.href='/admin/verifications'}>
+                  <DropdownMenuItem onClick={() => router.push('/admin/verifications')}>
                     Verifications
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.location.href='/admin/events/create'}>
+                  <DropdownMenuItem onClick={() => router.push('/admin/events/create')}>
                     Create Event
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.location.href='/admin/ambassadors'}>
+                  <DropdownMenuItem onClick={() => router.push('/admin/ambassadors')}>
                     Ambassadors
                   </DropdownMenuItem>
                 </DropdownMenuContent>

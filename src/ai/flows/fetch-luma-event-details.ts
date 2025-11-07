@@ -62,7 +62,7 @@ const fetchLumaEventDetailsFlow = ai.defineFlow(
       Description: "Join us for an exciting introduction to the world of Artificial Intelligence and Machine Learning. This workshop is perfect for beginners and will cover the fundamental concepts, popular tools, and real-world applications of AI. No prior experience required!"
       Date: "${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()}"
       
-      Now, provide the structured JSON output based on these details.`;
+      Now, provide the structured JSON output based on these details. If you cannot determine a value, use an empty string.`;
 
     const llmResponse = await ai.generate({
       prompt: prompt,
@@ -81,5 +81,3 @@ const fetchLumaEventDetailsFlow = ai.defineFlow(
     return output;
   }
 );
-
-    

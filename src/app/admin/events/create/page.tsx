@@ -22,20 +22,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import { createEvent } from '@/lib/firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 import type { College } from '@/types';
 import { Timestamp } from 'firebase/firestore';
 import { fetchLumaEventDetails } from '@/ai/flows/fetch-luma-event-details';
+import { Card, CardContent } from '@/components/ui/card';
 
 const MAX_BANNER_SIZE = 1 * 1024 * 1024; // 1MB
 const ACCEPTED_BANNER_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -58,17 +52,17 @@ const collegesList: College[] = [
 
 const formSchema = z.object({
   lumaUrl: z.string().url('Please enter a valid Luma URL.').optional().or(z.literal('')),
-  title: z.string().min(5, 'Title must be at least 5 characters.'),
-  description: z.string().min(20, 'Description must be at least 20 characters.'),
+  title: z.string(),
+  description: z.string(),
   banner: z.instanceof(File).refine(file => file.size <= MAX_BANNER_SIZE, 'Banner size must be 1MB or less.').refine(file => ACCEPTED_BANNER_TYPES.includes(file.type), 'Only .jpg, .png, and .webp files are accepted.'),
-  date: z.date({ required_error: 'A date is required.' }),
+  date: z.date(),
   duration: z.coerce.number().min(0.5, 'Duration must be at least 0.5 hours.'),
   isFree: z.boolean(),
   price: z.coerce.number().optional(),
   domains: z.array(z.string()).min(1, 'Select at least one domain.'),
   targetYears: z.array(z.number()).min(1, 'Select at least one target year.'),
   colleges: z.array(z.string()).min(1, 'Select at least one college.'),
-}).refine(data => data.isFree || (data.price && data.price > 0), {
+}).refine(data => data.isFree || (data.price !== undefined && data.price >= 0), {
     message: "Price is required for paid events.",
     path: ['price']
 });
@@ -86,6 +80,7 @@ export default function CreateEventPage() {
       lumaUrl: '',
       title: '',
       description: '',
+      duration: 1,
       isFree: true,
       price: 0,
       domains: [],
@@ -96,6 +91,7 @@ export default function CreateEventPage() {
   });
 
   const isFree = form.watch('isFree');
+  const fetchedTitle = form.watch('title');
 
   const handleFetchFromLuma = async () => {
     const lumaUrl = form.getValues('lumaUrl');
@@ -126,6 +122,11 @@ export default function CreateEventPage() {
         toast({ title: "Authentication Error", description: "You must be logged in to create an event.", variant: "destructive" });
         return;
     }
+    if (!values.title) {
+        toast({ title: "Missing Details", description: "Please fetch event details from Luma first.", variant: "destructive"});
+        return;
+    }
+
     setIsLoading(true);
     try {
       const eventData = {
@@ -157,7 +158,7 @@ export default function CreateEventPage() {
   return (
     <div className="container py-8">
        <h1 className="text-3xl font-bold font-headline mb-2">Create New Event</h1>
-       <p className="text-muted-foreground mb-8">Add a Luma link to auto-fill details or create an event manually.</p>
+       <p className="text-muted-foreground mb-8">Add a Luma link to auto-fill details, then set targeting.</p>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
@@ -167,7 +168,7 @@ export default function CreateEventPage() {
                   name="lumaUrl"
                   render={({ field }) => (
                       <FormItem>
-                      <FormLabel>Luma Event Link</FormLabel>
+                      <FormLabel>1. Luma Event Link</FormLabel>
                       <div className="flex gap-2">
                           <FormControl>
                             <Input placeholder="https://lu.ma/..." {...field} />
@@ -184,166 +185,108 @@ export default function CreateEventPage() {
                 />
             </div>
             
-             <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or fill manually
-                </span>
-              </div>
-            </div>
-
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Event Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Intro to Next.js" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Event Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Describe your event in detail..." rows={5} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField control={form.control} name="banner" render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Event Banner</FormLabel>
-                    <FormControl>
-                        <div className="flex items-center justify-center w-full">
-                            <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/80">
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <UploadCloud className="w-10 h-10 mb-3 text-muted-foreground" />
-                                    {field.value ? (
-                                        <p className="font-semibold text-primary">{field.value.name}</p>
-                                    ) : (
-                                        <>
-                                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                            <p className="text-xs text-muted-foreground">JPG, PNG, or WEBP (MAX. 1MB)</p>
-                                        </>
-                                    )}
-                                </div>
-                                <Input id="dropzone-file" type="file" className="hidden" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} />
-                            </label>
+            {fetchedTitle && (
+                <Card>
+                    <CardContent className='pt-6 space-y-4'>
+                        <h3 className='font-semibold'>Fetched Event Details</h3>
+                        <div>
+                            <p className='text-sm font-medium'>Title</p>
+                            <p className='text-sm text-muted-foreground'>{form.getValues('title')}</p>
                         </div>
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-            )} />
+                         <div>
+                            <p className='text-sm font-medium'>Date</p>
+                            <p className='text-sm text-muted-foreground'>{format(form.getValues('date'), 'PPP')}</p>
+                        </div>
+                         <div>
+                            <p className='text-sm font-medium'>Description</p>
+                            <p className='text-sm text-muted-foreground line-clamp-3'>{form.getValues('description')}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
+            <div className="space-y-4">
+                 <h3 className="text-lg font-medium">2. Event Configuration</h3>
+                <FormField control={form.control} name="banner" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Event Banner</FormLabel>
                         <FormControl>
-                            <Button
-                            variant={"outline"}
-                            className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                            )}
-                            >
-                            {field.value ? (
-                                format(field.value, "PPP")
-                            ) : (
-                                <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                        </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                                date < new Date(new Date().setHours(0,0,0,0))
-                            }
-                            initialFocus
-                        />
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                
-                <FormField
-                    control={form.control}
-                    name="duration"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Duration (in hours)</FormLabel>
-                        <FormControl>
-                            <Input type="number" step="0.5" {...field} />
+                            <div className="flex items-center justify-center w-full">
+                                <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/80">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <UploadCloud className="w-10 h-10 mb-3 text-muted-foreground" />
+                                        {field.value ? (
+                                            <p className="font-semibold text-primary">{field.value.name}</p>
+                                        ) : (
+                                            <>
+                                                <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                                <p className="text-xs text-muted-foreground">JPG, PNG, or WEBP (MAX. 1MB)</p>
+                                            </>
+                                        )}
+                                    </div>
+                                    <Input id="dropzone-file" type="file" className="hidden" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} />
+                                </label>
+                            </div>
                         </FormControl>
                         <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
+                    </FormItem>
+                )} />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                 <FormField
-                    control={form.control}
-                    name="isFree"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                                <FormLabel className="text-base">Free Event</FormLabel>
-                                <FormDescription>Is this a free-to-attend event?</FormDescription>
-                            </div>
-                            <FormControl>
-                                <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                />
-                            </FormControl>
-                        </FormItem>
-                    )}
-                />
-                {!isFree && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      <FormField
                         control={form.control}
-                        name="price"
+                        name="duration"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Price (INR)</FormLabel>
+                            <FormLabel>Duration (in hours)</FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder='e.g., 199' {...field} />
+                                <Input type="number" step="0.5" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
                         )}
                     />
-                )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                     <FormField
+                        control={form.control}
+                        name="isFree"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                    <FormLabel className="text-base">Free Event</FormLabel>
+                                    <FormDescription>Is this a free-to-attend event?</FormDescription>
+                                </div>
+                                <FormControl>
+                                    <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                    {!isFree && (
+                         <FormField
+                            control={form.control}
+                            name="price"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Price (INR)</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder='e.g., 199' {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+                </div>
             </div>
 
             <div className="space-y-4">
-                <h3 className="text-lg font-medium">Targeting</h3>
+                <h3 className="text-lg font-medium">3. Targeting</h3>
                 <FormField control={form.control} name="domains" render={() => (
                     <FormItem>
                         <div className="mb-4">
@@ -474,5 +417,3 @@ export default function CreateEventPage() {
     </div>
   );
 }
-
-    
