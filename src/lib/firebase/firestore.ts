@@ -79,3 +79,5 @@ export async function createWorkshop(workshopData: WorkshopCreationData, bannerF
     await setDoc(workshopRef, newWorkshop);
     return workshopId;
 }
+
+    

@@ -32,10 +32,11 @@ export type Event = {
   description: string;
   bannerUrl: string;
   date: Timestamp;
-  duration: number; // hours
-  meetLink?: string;
+  location: string;
+  category: 'event' | 'workshop' | 'mentorship';
   isFree: boolean;
   price: number; // in paise
+  maxSeats?: number;
   domains: string[];
   targetYears: number[];
   collegeIds: string[];
@@ -150,3 +151,5 @@ export type WorkshopRegistration = {
   organization?: string;
   year?: string;
 };
+
+    

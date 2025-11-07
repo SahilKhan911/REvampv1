@@ -62,7 +62,7 @@ export default function AdminWorkshopsPage() {
             ) : workshops.length === 0 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Upcoming Workshops</CardTitle>
+                        <CardTitle>No Workshops Found</CardTitle>
                         <CardDescription>No workshops have been created yet.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg">
@@ -88,7 +88,7 @@ export default function AdminWorkshopsPage() {
                                 <div className="flex items-center justify-between text-sm pt-2">
                                     <span className="font-semibold text-muted-foreground">Price</span>
                                     <Badge variant={workshop.price === 0 ? 'default' : 'outline'}>
-                                        {workshop.price === 0 ? 'Free' : `₹${workshop.price / 100}`}
+                                        {workshop.price === 0 ? 'Free' : `₹${workshop.price}`}
                                     </Badge>
                                 </div>
                                 <div className="flex items-center justify-between text-sm">
@@ -112,3 +112,5 @@ export default function AdminWorkshopsPage() {
         </div>
     )
 }
+
+    

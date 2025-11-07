@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase/config';
@@ -51,7 +50,9 @@ export default function WorkshopRegistrationsPage({ params }: { params: { id: st
             }
         };
 
-        fetchRegistrations();
+        if (params.id) {
+            fetchRegistrations();
+        }
     }, [params.id]);
 
     return (
@@ -70,7 +71,7 @@ export default function WorkshopRegistrationsPage({ params }: { params: { id: st
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Users />
-                        Attendees ({registrations.length} / {workshop?.maxSeats})
+                        Attendees ({registrations.length} / {workshop?.maxSeats || 'N/A'})
                     </CardTitle>
                     <CardDescription>
                         List of all individuals registered for this workshop.
@@ -124,3 +125,4 @@ export default function WorkshopRegistrationsPage({ params }: { params: { id: st
         </div>
     );
 }
+    

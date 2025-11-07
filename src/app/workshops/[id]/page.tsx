@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { notFound, useRouter } from 'next/navigation';
@@ -48,8 +47,8 @@ export default function WorkshopDetailsPage({ params }: { params: { id: string }
     const form = useForm<RegistrationFormData>({
         resolver: zodResolver(registrationSchema),
         defaultValues: {
-            name: user?.displayName || '',
-            email: user?.email || '',
+            name: '',
+            email: '',
             phone: '',
             organization: '',
             year: '',
@@ -57,15 +56,18 @@ export default function WorkshopDetailsPage({ params }: { params: { id: string }
     });
      
     useEffect(() => {
-        form.reset({
-            name: user?.displayName || '',
-            email: user?.email || '',
-        });
+        if(user) {
+            form.reset({
+                name: user.displayName || '',
+                email: user.email || '',
+            });
+        }
     }, [user, form]);
 
 
     useEffect(() => {
         const fetchWorkshop = async () => {
+            if (!params.id) return;
             setIsLoading(true);
             try {
                 const workshopRef = doc(db, 'workshops', params.id);
@@ -111,21 +113,24 @@ export default function WorkshopDetailsPage({ params }: { params: { id: string }
     const handlePaidRegistration = async (data: RegistrationFormData) => {
         if (!user || !workshop?.id || !workshop.price) return;
         setIsSubmitting(true);
+        
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onerror = () => {
+            toast({ title: 'Payment Error', description: 'Razorpay SDK failed to load.', variant: 'destructive' });
+            setIsSubmitting(false);
+        };
+        script.onload = async () => {
+            try {
+                const orderRes = await fetch('/api/razorpay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: workshop.price * 100, id: workshop.id, type: 'workshop' }),
+                });
+                if (!orderRes.ok) throw new Error('Failed to create Razorpay order.');
 
-        try {
-            const orderRes = await fetch('/api/razorpay', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: workshop.price, id: workshop.id, type: 'workshop' }),
-            });
-            if (!orderRes.ok) throw new Error('Failed to create Razorpay order.');
-
-            const { order } = await orderRes.json();
-            
-            const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-            script.onerror = () => { throw new Error('Razorpay SDK failed to load.'); };
-            script.onload = () => {
+                const { order } = await orderRes.json();
+                
                 const options = {
                     key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                     amount: order.amount,
@@ -171,20 +176,19 @@ export default function WorkshopDetailsPage({ params }: { params: { id: string }
                     setIsSubmitting(false);
                 });
                 rzp.open();
-                 // This timeout is a fallback in case the modal is closed without payment
-                const paymentDialogCloseFallback = setTimeout(() => setIsSubmitting(false), 5000);
+                
+                const paymentDialogCloseFallback = setTimeout(() => setIsSubmitting(false), 90000); // 90s fallback
                 rzp.on('modal.close', () => {
                     clearTimeout(paymentDialogCloseFallback);
                     setIsSubmitting(false)
                 });
-            };
-            document.body.appendChild(script);
-
-        } catch (err: any) {
-            console.error('Payment Error:', err);
-            toast({ title: 'Payment Error', description: err.message || 'Could not initiate payment.', variant: 'destructive' });
-            setIsSubmitting(false);
-        }
+            } catch(err: any) {
+                console.error('Payment Error:', err);
+                toast({ title: 'Payment Error', description: err.message || 'Could not initiate payment.', variant: 'destructive' });
+                setIsSubmitting(false);
+            }
+        };
+        document.body.appendChild(script);
     };
 
     const onSubmit = (data: RegistrationFormData) => {
@@ -203,7 +207,7 @@ export default function WorkshopDetailsPage({ params }: { params: { id: string }
         <div className="container py-12">
             <div className="grid lg:grid-cols-2 gap-12 items-start">
                 <div className="space-y-6">
-                    <div className="relative aspect-video w-full rounded-lg overflow-hidden">
+                    <div className="relative aspect-video w-full rounded-lg overflow-hidden border">
                         <Image src={workshop.bannerUrl} alt={workshop.title} fill className="object-cover" />
                     </div>
                     <h1 className="text-4xl font-bold font-headline">{workshop.title}</h1>
@@ -212,16 +216,16 @@ export default function WorkshopDetailsPage({ params }: { params: { id: string }
                         <div className="flex items-center gap-2"><MapPin className="h-4 w-4" />{workshop.location}</div>
                         <div className="flex items-center gap-2"><Users className="h-4 w-4" />{workshop.maxSeats} seats</div>
                     </div>
-                    <p className="text-lg text-muted-foreground">{workshop.description}</p>
+                    <p className="text-lg leading-relaxed">{workshop.description}</p>
                 </div>
                 
-                <Card>
+                <Card className="sticky top-24">
                     <CardHeader>
                         <CardTitle>Register for this Workshop</CardTitle>
                         <CardDescription>Fill in your details to secure your spot.</CardDescription>
                         <div className="flex items-baseline gap-2 pt-4">
                             <span className="text-4xl font-bold">
-                                {workshop.price === 0 ? 'Free' : `₹${workshop.price / 100}`}
+                                {workshop.price === 0 ? 'Free' : `₹${workshop.price}`}
                             </span>
                             {workshop.price > 0 && <span className="text-muted-foreground">per person</span>}
                         </div>
@@ -260,7 +264,7 @@ export default function WorkshopDetailsPage({ params }: { params: { id: string }
 
                                 <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {workshop.price === 0 ? 'Register Now' : `Register & Pay ₹${workshop.price / 100}`}
+                                    {workshop.price === 0 ? 'Register Now' : `Register & Pay ₹${workshop.price}`}
                                 </Button>
                             </form>
                          </Form>
@@ -303,3 +307,5 @@ const WorkshopDetailsSkeleton = () => (
         </div>
     </div>
 );
+
+    

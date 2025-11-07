@@ -69,7 +69,7 @@ export default function CreateWorkshopPage() {
 
             const workshopData = {
                 ...workshopBaseData,
-                price: workshopBaseData.price * 100, // Convert to paise
+                price: workshopBaseData.price,
                 date: Timestamp.fromDate(workshopDateTime),
             };
             
@@ -161,7 +161,7 @@ export default function CreateWorkshopPage() {
                                 <FormItem><FormLabel>Start Time (24h format)</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="price" render={({ field }) => (
-                                    <FormItem><FormLabel>Price (₹)</FormLabel><FormControl><Input type="number" placeholder="Enter 0 for a free workshop" {...field} /></FormControl><FormDescription>Enter 0 for a free workshop.</FormDescription><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Price (₹)</FormLabel><FormControl><Input type="number" placeholder="Enter 0 for a free workshop" {...field} /></FormControl><FormDescription>Enter 0 for a free workshop. The price should be in rupees.</FormDescription><FormMessage /></FormItem>
                                 )} />
                              <FormField control={form.control} name="maxSeats" render={({ field }) => (
                                <FormItem><FormLabel>Max Capacity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
@@ -181,3 +181,5 @@ export default function CreateWorkshopPage() {
         </div>
     );
 }
+
+    
